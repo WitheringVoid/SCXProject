@@ -1,0 +1,23 @@
+commit 716e64b05f4a3709dfc0b0522cf9fd4456d055e5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2026-04-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2026-04-16
+
+    Bump package and library versions
+
+commit 0a83a07cef4efc9a06bd130b9231e963dac708d5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2026-04-10
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2026-04-16
+
+    tests: Add qlog tests for writes that use fixed buffers
+
+commit 708a7640c1f48fb8ffb540c4b8ea5b4c1dfb8ee5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2026-04-10
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2026-04-16
+
+    Fix qlog parameters_set stack buffer overflow
