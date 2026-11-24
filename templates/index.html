@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <title>Simple Stalcraft</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: Arial, sans-serif;
@@ -14,10 +12,7 @@
             margin: 20px;
         }
 
-        .wrap {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+        .wrap { max-width: 1100px; margin: 0 auto; }
 
         .top {
             display: flex;
@@ -40,6 +35,8 @@
             box-sizing: border-box;
         }
 
+        button:disabled { opacity: 0.6; cursor: default; }
+
         .message {
             margin-bottom: 15px;
             color: #333;
@@ -56,10 +53,8 @@
 
         .overlay {
             position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4);
             display: flex;
             align-items: center;
@@ -80,6 +75,14 @@
             background: #f9f9f9;
         }
 
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toolbar button { width: auto; padding: 8px 16px; margin: 0; }
+
         .players {
             display: flex;
             gap: 20px;
@@ -92,6 +95,16 @@
             padding: 15px;
             background: white;
         }
+
+        .status-line {
+            margin-top: 10px;
+            color: #666;
+            min-height: 20px;
+        }
+
+        .status-pending { color: #b8860b; }
+        .status-not_found { color: #a00; }
+        .status-found { color: #2a7a2a; }
     </style>
 </head>
 <body>
@@ -107,8 +120,8 @@
         <div class="box">
             <h3>Вход</h3>
             <form method="post" action="/login">
-                <input type="text" name="login" placeholder="Логин">
-                <input type="password" name="password" placeholder="Пароль">
+                <input type="text" name="login" placeholder="Логин" autocomplete="username">
+                <input type="password" name="password" placeholder="Пароль" autocomplete="current-password">
                 <button type="submit">Войти</button>
             </form>
         </div>
@@ -116,9 +129,9 @@
         <div class="box">
             <h3>Регистрация</h3>
             <form method="post" action="/register">
-                <input type="text" name="register_login" placeholder="Логин">
-                <input type="password" name="register_password" placeholder="Пароль">
-                <input type="password" name="register_password2" placeholder="Подтвердите пароль">
+                <input type="text" name="register_login" placeholder="Логин" autocomplete="username">
+                <input type="password" name="register_password" placeholder="Пароль" autocomplete="new-password">
+                <input type="password" name="register_password2" placeholder="Подтвердите пароль" autocomplete="new-password">
                 <button type="submit">Зарегистрироваться</button>
             </form>
         </div>
@@ -128,7 +141,8 @@
             <div class="overlay-box">
                 <h3>Код 2FA</h3>
                 <form method="post" action="/check_2fa">
-                    <input type="text" name="code" placeholder="Код из Google Authenticator">
+                    <input type="text" name="code" placeholder="Код из Google Authenticator"
+                           inputmode="numeric" autocomplete="one-time-code" autofocus>
                     <button type="submit">Проверить</button>
                 </form>
             </div>
@@ -148,12 +162,15 @@
 
     {% if logged_in %}
     <div class="main-box">
-        <button id="logoutBtn" style="width: 120px;">Выйти</button>
+        <div class="toolbar">
+            <button id="logoutBtn">Выйти</button>
+            <a href="/players"><button type="button">Мои игроки</button></a>
+        </div>
 
         <div class="players">
             <div class="player-card">
                 <h3>Игрок 1</h3>
-                <input type="text" id="nickname1" placeholder="Ник 1">
+                <input type="text" id="nickname1" placeholder="Ник 1" autocomplete="off">
                 <select id="region1">
                     <option value="RU">RU</option>
                     <option value="EU">EU</option>
@@ -162,7 +179,7 @@
 
             <div class="player-card">
                 <h3>Игрок 2</h3>
-                <input type="text" id="nickname2" placeholder="Ник 2">
+                <input type="text" id="nickname2" placeholder="Ник 2" autocomplete="off">
                 <select id="region2">
                     <option value="RU">RU</option>
                     <option value="EU">EU</option>
@@ -171,6 +188,7 @@
         </div>
 
         <button id="checkBtn" style="margin-top: 20px;">Проверить</button>
+        <div id="checkStatus" class="status-line"></div>
 
         <div class="players">
             <div class="player-card">
@@ -183,6 +201,7 @@
                 <div>К/Д: <span id="r1_kd">0.00</span></div>
                 <div>Последний онлайн: <span id="r1_last">не найден</span></div>
                 <div>Дата обновления: <span id="r1_updated">-</span></div>
+                <div>Статус: <span id="r1_status" class="status-line">—</span></div>
             </div>
 
             <div class="player-card">
@@ -195,105 +214,125 @@
                 <div>К/Д: <span id="r2_kd">0.00</span></div>
                 <div>Последний онлайн: <span id="r2_last">не найден</span></div>
                 <div>Дата обновления: <span id="r2_updated">-</span></div>
+                <div>Статус: <span id="r2_status" class="status-line">—</span></div>
             </div>
         </div>
     </div>
 
     <script>
-        function setEmpty(num) {
-            document.getElementById('r' + num + '_nickname').innerText = '';
-            document.getElementById('r' + num + '_region').innerText = '';
-            document.getElementById('r' + num + '_kills').innerText = '0';
-            document.getElementById('r' + num + '_deaths').innerText = '0';
-            document.getElementById('r' + num + '_hours').innerText = '0';
-            document.getElementById('r' + num + '_kd').innerText = '0.00';
-            document.getElementById('r' + num + '_last').innerText = 'не найден';
-            document.getElementById('r' + num + '_updated').innerText = '-';
+    function el(id) { return document.getElementById(id); }
+
+    function setEmpty(num) {
+        el('r' + num + '_nickname').innerText = '';
+        el('r' + num + '_region').innerText = '';
+        el('r' + num + '_kills').innerText = '0';
+        el('r' + num + '_deaths').innerText = '0';
+        el('r' + num + '_hours').innerText = '0';
+        el('r' + num + '_kd').innerText = '0.00';
+        el('r' + num + '_last').innerText = 'не найден';
+        el('r' + num + '_updated').innerText = '-';
+        setStatus(num, 'empty');
+    }
+
+    function setStatus(num, status, text) {
+        const node = el('r' + num + '_status');
+        if (!node) return;
+        node.className = 'status-line status-' + status;
+        if (text !== undefined) {
+            node.innerText = text;
+        } else {
+            const map = {
+                empty: '—',
+                pending: 'ещё проверяется…',
+                found: 'найден',
+                not_found: 'не найден',
+                error: 'ошибка запроса'
+            };
+            node.innerText = map[status] || status;
         }
+    }
 
-        function normalizeKd(value) {
-            if (value === null || value === undefined || value === '') {
-                return '0.00';
-            }
+    function normalizeKd(value) {
+        if (value === null || value === undefined || value === '') return '0.00';
+        let num = Number(value);
+        if (Number.isNaN(num)) return '0.00';
+        return num.toFixed(2);
+    }
 
-            let num = Number(value);
+    function fillBlock(num, data) {
+        el('r' + num + '_nickname').innerText = data.nickname || '';
+        el('r' + num + '_region').innerText = data.region || '';
+        el('r' + num + '_kills').innerText = data.kills ?? 0;
+        el('r' + num + '_deaths').innerText = data.deaths ?? 0;
+        el('r' + num + '_hours').innerText = data.hours_played ?? 0;
+        el('r' + num + '_kd').innerText = normalizeKd(data.kd);
+        el('r' + num + '_last').innerText = data.last_online || 'не найден';
+        el('r' + num + '_updated').innerText = data.updated_at || '-';
 
-            if (Number.isNaN(num)) {
-                return '0.00';
-            }
+        let status = data.status || (data.updated_at && data.updated_at !== '-' ? 'found' : 'not_found');
+        setStatus(num, status);
+    }
 
-            return num.toFixed(2);
-        }
+    const checkBtn = el('checkBtn');
+    if (checkBtn) {
+        checkBtn.addEventListener('click', async function() {
+            const n1 = el('nickname1').value.trim();
+            const g1 = el('region1').value;
+            const n2 = el('nickname2').value.trim();
+            const g2 = el('region2').value;
 
-        function fillBlock(num, data) {
-            document.getElementById('r' + num + '_nickname').innerText = data.nickname || '';
-            document.getElementById('r' + num + '_region').innerText = data.region || '';
-            document.getElementById('r' + num + '_kills').innerText = data.kills ?? 0;
-            document.getElementById('r' + num + '_deaths').innerText = data.deaths ?? 0;
-            document.getElementById('r' + num + '_hours').innerText = data.hours_played ?? 0;
-            document.getElementById('r' + num + '_kd').innerText = normalizeKd(data.kd);
-            document.getElementById('r' + num + '_last').innerText = data.last_online || 'не найден';
-            document.getElementById('r' + num + '_updated').innerText = data.updated_at || '-';
-        }
-
-        async function loadOne(num, nickname, region) {
-            if (!nickname) {
-                setEmpty(num);
+            if (!n1 && !n2) {
+                el('checkStatus').innerText = 'введите хотя бы один ник';
                 return;
             }
 
+            el('checkStatus').innerText = 'отправлено в очередь...';
+            
+            await fetch('/api/check_players', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nickname1: n1, region1: g1, nickname2: n2, region2: g2})
+            });
+            
+            el('checkStatus').innerText = 'проверяем в фоне...';
+            if (n1) setStatus(1, 'pending');
+            if (n2) setStatus(2, 'pending');
+        });
+    }
+
+    async function autoUpdate() {
+        const n1 = el('nickname1').value.trim();
+        const g1 = el('region1').value;
+        const n2 = el('nickname2').value.trim();
+        const g2 = el('region2').value;
+
+        if (n1) {
             try {
-                let response = await fetch('/api/player?nickname=' + encodeURIComponent(nickname) + '&region=' + encodeURIComponent(region));
-                let data = await response.json();
-                fillBlock(num, data);
-            } catch (e) {
-                setEmpty(num);
-            }
+                let r = await fetch(`/api/player?nickname=${encodeURIComponent(n1)}&region=${g1}`);
+                let data = await r.json();
+                fillBlock(1, data);
+            } catch(e) {}
         }
-
-        async function loadPlayers() {
-            let nickname1 = document.getElementById('nickname1').value.trim();
-            let region1 = document.getElementById('region1').value;
-            let nickname2 = document.getElementById('nickname2').value.trim();
-            let region2 = document.getElementById('region2').value;
-
-            await loadOne(1, nickname1, region1);
-            await loadOne(2, nickname2, region2);
+        if (n2) {
+            try {
+                let r = await fetch(`/api/player?nickname=${encodeURIComponent(n2)}&region=${g2}`);
+                let data = await r.json();
+                fillBlock(2, data);
+            } catch(e) {}
         }
+    }
 
-        const checkBtn = document.getElementById('checkBtn');
-        if (checkBtn) {
-            checkBtn.addEventListener('click', async function() {
-                let nickname1 = document.getElementById('nickname1').value.trim();
-                let region1 = document.getElementById('region1').value;
-                let nickname2 = document.getElementById('nickname2').value.trim();
-                let region2 = document.getElementById('region2').value;
+    setInterval(autoUpdate, 5000);
+    autoUpdate();
 
-                await fetch('/api/check_players', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        nickname1: nickname1,
-                        region1: region1,
-                        nickname2: nickname2,
-                        region2: region2
-                    })
-                });
-
-                await loadPlayers();
-            });
-        }
-
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async function() {
-                await fetch('/logout', {method: 'POST'});
-                location.reload();
-            });
-        }
-
-        setInterval(loadPlayers, 5000);
-    </script>
+    const logoutBtn = el('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async function() {
+            await fetch('/logout', {method: 'POST'});
+            location.reload();
+        });
+    }
+</script>
     {% endif %}
 </div>
 </body>
